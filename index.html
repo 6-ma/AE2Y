@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AE2Y</title>
+    <link rel="stylesheet" id="hljs-theme-dark" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/styles/vs2015.min.css" disabled>
+    <link rel="stylesheet" id="hljs-theme-light" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/styles/github.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/languages/c.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: var(--bg, #fff);
+            color: var(--fg, #222);
+            transition: background 0.3s, color 0.3s;
+        }
+        .dark {
+            --bg: #222;
+            --fg: #eee;
+        }
+        .light {
+            --bg: #fff;
+            --fg: #222;
+        }
+        .question {
+            margin: 2em 0 1em 0;
+        }
+        .choices label {
+            display: block;
+            margin-bottom: 0.5em;
+        }
+        #result {
+            margin-top: 2em;
+            white-space: pre-wrap;
+            background: #f0f0f0;
+            padding: 1em;
+            border-radius: 8px;
+        }
+        button {
+            margin-top: 1em;
+        }
+        .code-area {
+            background: transparent;
+            padding: 0;
+            margin-bottom: 1em;
+            overflow-x: auto;
+        }
+        .code-area pre {
+            margin: 0;
+            font-family: 'Cascadia Mono', 'Fira Mono', 'Consolas', monospace;
+            font-size: 1em;
+        }
+    </style>
+</head>
+<body class="light">
+    <h1>AE2Y</h1>
+    <div id="intro-area">
+        <p>テストはPCで行ってください．</p>
+        <p>テスト終了後に結果が表示されるので，コピーして指定のフォームに送信してください</p>
+        <button id="start-btn">テスト開始</button>
+    </div>
+    <div id="test-area" style="display:none;">
+        <div id="mode-indicator">モード: ライト</div>
+        <div class="question" id="question"></div>
+        <form id="choices" class="choices"></form>
+        <button id="submit" disabled>回答する</button>
+    </div>
+    <div id="result" style="display:none;"></div>
+    <script>
+let questions = [];
+let mode = Math.random() < 0.5 ? 'light' : 'dark'; // ランダムで開始
+let current = 0;
+let results = [];
+let startTime = 0;
+const totalQuestions = 8; // 出題数
+let questionOrder = [];
+
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+function setMode(newMode) {
+    document.body.className = newMode;
+    document.getElementById('mode-indicator').textContent = 'モード: ' + (newMode === 'dark' ? 'ダーク' : 'ライト');
+    // コード部分のテーマ切り替え
+    const darkTheme = document.getElementById('hljs-theme-dark');
+    const lightTheme = document.getElementById('hljs-theme-light');
+    if (newMode === 'dark') {
+        darkTheme.removeAttribute('disabled');
+        lightTheme.setAttribute('disabled', '');
+    } else {
+        lightTheme.removeAttribute('disabled');
+        darkTheme.setAttribute('disabled', '');
+    }
+}
+
+function showQuestion() {
+    if (current >= questionOrder.length) {
+        setTimeout(() => {
+            document.getElementById('test-area').style.display = 'none';
+            showResult();
+        }, 0);
+        return;
+    }
+    setMode(current % 2 === 0 ? mode : (mode === 'light' ? 'dark' : 'light'));
+    const qIdx = questionOrder[current];
+    const q = questions[qIdx];
+    // コード表示領域
+    let codeHtml = '';
+    if (q && q.code) {
+        codeHtml = `<div class="code-area"><pre><code class="language-c">${q.code
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')}</code></pre></div>`;
+    }
+    document.getElementById('question').innerHTML = `${codeHtml}`;
+    const form = document.getElementById('choices');
+    form.innerHTML = '';
+    if (q && q.choices) {
+        q.choices.forEach((c, i) => {
+            form.innerHTML += `<label><input type="radio" name="choice" value="${i}"> ${c}</label>`;
+        });
+    }
+    document.getElementById('submit').disabled = true;
+    form.onchange = () => {
+        document.getElementById('submit').disabled = false;
+    };
+    startTime = Date.now();
+    setTimeout(() => hljs.highlightAll(), 0);
+}
+
+document.getElementById('submit').onclick = function(e) {
+    e.preventDefault();
+    if (current >= questionOrder.length) return;
+    const form = document.getElementById('choices');
+    const selected = form.querySelector('input[name="choice"]:checked');
+    if (!selected) return;
+    const qIdx = questionOrder[current];
+    const q = questions[qIdx];
+    if (!q) return;
+    const correct = parseInt(selected.value) === q.answer;
+    const time = ((Date.now() - startTime) / 1000).toFixed(2);
+    results.push({
+        no: current+1,
+        mode: (current % 2 === 0 ? mode : (mode === 'light' ? 'dark' : 'light')),
+        code: q.code,
+        selected: q.choices[selected.value],
+        correct: correct,
+        time: time
+    });
+    current++;
+    showQuestion();
+};
+
+function showResult() {
+    // CSV形式で出力: 問題番号,モード,正誤,カラーモード
+    let csv = 'No,Mode,Correct,ColorMode\n';
+    csv += results.map(r => `${r.no},${r.mode},${r.correct ? '1' : '0'},${r.mode}`).join('\n');
+    const info = 'この結果をコピーしてフォームに貼り付けてください。';
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = `<pre id="csv-result">${csv}</pre><button id="copy-result">結果をコピー</button><div style="margin-top:1em;">${info}</div>`;
+    resultDiv.style.display = '';
+    document.getElementById('copy-result').onclick = function() {
+        navigator.clipboard.writeText(csv).then(() => {
+            this.textContent = 'コピーしました!';
+            setTimeout(() => { this.textContent = '結果をコピー'; }, 1500);
+        });
+    };
+}
+
+// 簡易C言語キーワード色付け
+function highlightCCode() {
+    // highlight.jsでハイライトするので何もしない
+}
+
+function startTest() {
+    document.getElementById('intro-area').style.display = 'none';
+    document.getElementById('test-area').style.display = '';
+    testStarted = true;
+    current = 0;
+    results = [];
+    startTime = 0;
+    showQuestion();
+}
+
+// スタートボタン
+document.getElementById('start-btn').onclick = function() {
+    startTest();
+};
+
+// JSONファイルから問題を読み込む
+fetch('questions.json')
+    .then(res => res.json())
+    .then(data => {
+        questions = data;
+        // 問題数が少ない場合は繰り返し出題
+        let qLen = questions.length;
+        if (qLen === 0) {
+            document.getElementById('test-area').innerHTML = '<div style="color:red;">問題データがありません。</div>';
+            return;
+        }
+        let order = [];
+        for (let i = 0; i < totalQuestions; i++) {
+            order.push(i % qLen);
+        }
+        questionOrder = shuffle(order);
+    })
+    .catch(err => {
+        document.getElementById('test-area').innerHTML = '<div style="color:red;">問題データの読み込みに失敗しました。</div>';
+    });
+    </script>
+</body>
+</html>

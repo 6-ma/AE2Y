@@ -1,0 +1,27 @@
+[
+    {
+        "code": "int x = 5;\nprintf(\"%d\", x++);",
+        "choices": ["4", "5", "6", "エラー"],
+        "answer": 1
+    },
+    {
+        "code": "for(int i=0; i<3; i++)\n    printf(\"%d\", i);",
+        "choices": ["012", "123", "234", "エラー"],
+        "answer": 0
+    },
+    {
+        "code": "printf(\"%d\", 2+3*4);",
+        "choices": ["20", "14", "24", "10"],
+        "answer": 1
+    },
+    {
+        "code": "int a=2, b=3;\nprintf(\"%d\", a+b*2);",
+        "choices": ["8", "10", "7", "5"],
+        "answer": 2
+    },
+    {
+        "code": "int x=1;\nprintf(\"%d\", ++x);",
+        "choices": ["1", "2", "3", "エラー"],
+        "answer": 1
+    }
+]
