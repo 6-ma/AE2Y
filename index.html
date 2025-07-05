@@ -14,6 +14,12 @@
             background: var(--bg, #fff);
             color: var(--fg, #222);
             transition: background 0.3s, color 0.3s;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .dark {
             --bg: #222;
@@ -22,6 +28,15 @@
         .light {
             --bg: #fff;
             --fg: #222;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 2em;
         }
         .question {
             margin: 2em 0 1em 0;
@@ -37,182 +52,254 @@
             padding: 1em;
             border-radius: 8px;
         }
+        .dark #result {
+            background: #333;
+        }
         button {
             margin-top: 1em;
+            padding: 10px 20px;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px;
+            background: #007acc;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
         }
         .code-area {
             background: transparent;
             padding: 0;
-            margin-bottom: 1em;
+            margin: 2em 0;
             overflow-x: auto;
+            text-align: left;
         }
         .code-area pre {
             margin: 0;
-            font-family: 'Cascadia Mono', 'Fira Mono', 'Consolas', monospace;
+            font-family: 'Courier New', monospace;
             font-size: 1em;
+            line-height: 1.6;
+            padding: 1.5em;
+            background: var(--code-bg, #f8f8f8);
+            border-radius: 8px;
+            text-align: left;
+        }
+        .dark .code-area pre {
+            --code-bg: #2d2d2d;
+        }
+        #intro-area, #test-area, #result {
+            text-align: center;
+        }
+        .choices {
+            text-align: left;
+            margin: 1em 0;
+        }
+        .result-details {
+            text-align: left;
+            margin: 2em 0;
+        }
+        .result-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1em;
+            margin-bottom: 1em;
+            background: var(--bg, #fff);
+        }
+        .dark .result-item {
+            border-color: #555;
+        }
+        .result-item h3 {
+            margin-top: 0;
+            color: #007acc;
+        }
+        .dark .result-item h3 {
+            color: #4fc3f7;
+        }
+        .result-item p {
+            margin: 0.5em 0;
         }
     </style>
 </head>
 <body class="light">
-    <h1>AE2Y</h1>
-    <div id="intro-area">
-        <p>テストはPCで行ってください．</p>
-        <p>テスト終了後に結果が表示されるので，コピーして指定のフォームに送信してください</p>
-        <button id="start-btn">テスト開始</button>
+    <div class="container">
+        <h1>AE2Y</h1>
+        <div id="intro-area">
+            <p>テストはPCで行ってください．</p>
+            <p>テスト終了後に結果が表示されるので，コピーして指定のフォームに送信してください</p>
+            <button id="start-btn">テスト開始</button>
+        </div>
+        <div id="test-area" style="display:none;">
+            <div id="mode-indicator">モード: ライト</div>
+            <div class="question" id="question"></div>
+            <form id="choices" class="choices"></form>
+            <button id="submit" disabled>回答する</button>
+        </div>
+        <div id="result" style="display:none;"></div>
     </div>
-    <div id="test-area" style="display:none;">
-        <div id="mode-indicator">モード: ライト</div>
-        <div class="question" id="question"></div>
-        <form id="choices" class="choices"></form>
-        <button id="submit" disabled>回答する</button>
-    </div>
-    <div id="result" style="display:none;"></div>
     <script>
-let questions = [];
-let mode = Math.random() < 0.5 ? 'light' : 'dark'; // ランダムで開始
-let current = 0;
-let results = [];
-let startTime = 0;
-const totalQuestions = 8; // 出題数
-let questionOrder = [];
+        let questions = [];
+        let mode = Math.random() < 0.5 ? 'light' : 'dark'; // ランダムで開始
+        let current = 0;
+        let results = [];
+        let startTime = 0;
+        const totalQuestions = 4; // 出題数
+        let questionOrder = [];
 
-function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-}
-
-function setMode(newMode) {
-    document.body.className = newMode;
-    document.getElementById('mode-indicator').textContent = 'モード: ' + (newMode === 'dark' ? 'ダーク' : 'ライト');
-    // コード部分のテーマ切り替え
-    const darkTheme = document.getElementById('hljs-theme-dark');
-    const lightTheme = document.getElementById('hljs-theme-light');
-    if (newMode === 'dark') {
-        darkTheme.removeAttribute('disabled');
-        lightTheme.setAttribute('disabled', '');
-    } else {
-        lightTheme.removeAttribute('disabled');
-        darkTheme.setAttribute('disabled', '');
-    }
-}
-
-function showQuestion() {
-    if (current >= questionOrder.length) {
-        setTimeout(() => {
-            document.getElementById('test-area').style.display = 'none';
-            showResult();
-        }, 0);
-        return;
-    }
-    setMode(current % 2 === 0 ? mode : (mode === 'light' ? 'dark' : 'light'));
-    const qIdx = questionOrder[current];
-    const q = questions[qIdx];
-    // コード表示領域
-    let codeHtml = '';
-    if (q && q.code) {
-        codeHtml = `<div class="code-area"><pre><code class="language-c">${q.code
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')}</code></pre></div>`;
-    }
-    document.getElementById('question').innerHTML = `${codeHtml}`;
-    const form = document.getElementById('choices');
-    form.innerHTML = '';
-    if (q && q.choices) {
-        q.choices.forEach((c, i) => {
-            form.innerHTML += `<label><input type="radio" name="choice" value="${i}"> ${c}</label>`;
-        });
-    }
-    document.getElementById('submit').disabled = true;
-    form.onchange = () => {
-        document.getElementById('submit').disabled = false;
-    };
-    startTime = Date.now();
-    setTimeout(() => hljs.highlightAll(), 0);
-}
-
-document.getElementById('submit').onclick = function(e) {
-    e.preventDefault();
-    if (current >= questionOrder.length) return;
-    const form = document.getElementById('choices');
-    const selected = form.querySelector('input[name="choice"]:checked');
-    if (!selected) return;
-    const qIdx = questionOrder[current];
-    const q = questions[qIdx];
-    if (!q) return;
-    const correct = parseInt(selected.value) === q.answer;
-    const time = ((Date.now() - startTime) / 1000).toFixed(2);
-    results.push({
-        no: current+1,
-        mode: (current % 2 === 0 ? mode : (mode === 'light' ? 'dark' : 'light')),
-        code: q.code,
-        selected: q.choices[selected.value],
-        correct: correct,
-        time: time
-    });
-    current++;
-    showQuestion();
-};
-
-function showResult() {
-    // CSV形式で出力: 問題番号,モード,正誤,カラーモード
-    let csv = 'No,Mode,Correct,ColorMode\n';
-    csv += results.map(r => `${r.no},${r.mode},${r.correct ? '1' : '0'},${r.mode}`).join('\n');
-    const info = 'この結果をコピーしてフォームに貼り付けてください。';
-    const resultDiv = document.getElementById('result');
-    resultDiv.innerHTML = `<pre id="csv-result">${csv}</pre><button id="copy-result">結果をコピー</button><div style="margin-top:1em;">${info}</div>`;
-    resultDiv.style.display = '';
-    document.getElementById('copy-result').onclick = function() {
-        navigator.clipboard.writeText(csv).then(() => {
-            this.textContent = 'コピーしました!';
-            setTimeout(() => { this.textContent = '結果をコピー'; }, 1500);
-        });
-    };
-}
-
-// 簡易C言語キーワード色付け
-function highlightCCode() {
-    // highlight.jsでハイライトするので何もしない
-}
-
-function startTest() {
-    document.getElementById('intro-area').style.display = 'none';
-    document.getElementById('test-area').style.display = '';
-    testStarted = true;
-    current = 0;
-    results = [];
-    startTime = 0;
-    showQuestion();
-}
-
-// スタートボタン
-document.getElementById('start-btn').onclick = function() {
-    startTest();
-};
-
-// JSONファイルから問題を読み込む
-fetch('questions.json')
-    .then(res => res.json())
-    .then(data => {
-        questions = data;
-        // 問題数が少ない場合は繰り返し出題
-        let qLen = questions.length;
-        if (qLen === 0) {
-            document.getElementById('test-area').innerHTML = '<div style="color:red;">問題データがありません。</div>';
-            return;
+        function shuffle(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
         }
-        let order = [];
-        for (let i = 0; i < totalQuestions; i++) {
-            order.push(i % qLen);
+
+        function setMode(newMode) {
+            document.body.className = newMode;
+            document.getElementById('mode-indicator').textContent = 'モード: ' + (newMode === 'dark' ? 'ダーク' : 'ライト');
+            // コード部分のテーマ切り替え
+            const darkTheme = document.getElementById('hljs-theme-dark');
+            const lightTheme = document.getElementById('hljs-theme-light');
+            if (newMode === 'dark') {
+                darkTheme.removeAttribute('disabled');
+                lightTheme.setAttribute('disabled', '');
+            } else {
+                lightTheme.removeAttribute('disabled');
+                darkTheme.setAttribute('disabled', '');
+            }
         }
-        questionOrder = shuffle(order);
-    })
-    .catch(err => {
-        document.getElementById('test-area').innerHTML = '<div style="color:red;">問題データの読み込みに失敗しました。</div>';
-    });
+
+        function showQuestion() {
+            if (current >= questionOrder.length) {
+                setTimeout(() => {
+                    document.getElementById('test-area').style.display = 'none';
+                    showResult();
+                }, 0);
+                return;
+            }
+            setMode(current % 2 === 0 ? mode : (mode === 'light' ? 'dark' : 'light'));
+            const qIdx = questionOrder[current];
+            const q = questions[qIdx];
+            // コード表示領域
+            let codeHtml = '';
+            if (q && q.code) {
+                codeHtml = `<div class="code-area"><pre><code class="language-c">${q.code
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')}</code></pre></div>`;
+            }
+            document.getElementById('question').innerHTML = `${codeHtml}`;
+            const form = document.getElementById('choices');
+            form.innerHTML = '';
+            if (q && q.choices) {
+                // 選択肢をランダムに並び替える
+                const shuffledChoices = q.choices.map((choice, index) => ({ choice, originalIndex: index }));
+                shuffle(shuffledChoices);
+                
+                shuffledChoices.forEach((item, i) => {
+                    form.innerHTML += `<label><input type="radio" name="choice" value="${item.originalIndex}"> ${item.choice}</label>`;
+                });
+            }
+            document.getElementById('submit').disabled = true;
+            form.onchange = () => {
+                document.getElementById('submit').disabled = false;
+            };
+            startTime = Date.now();
+            setTimeout(() => hljs.highlightAll(), 0);
+        }
+
+        document.getElementById('submit').onclick = function(e) {
+            e.preventDefault();
+            if (current >= questionOrder.length) return;
+            const form = document.getElementById('choices');
+            const selected = form.querySelector('input[name="choice"]:checked');
+            if (!selected) return;
+            const qIdx = questionOrder[current];
+            const q = questions[qIdx];
+            if (!q) return;
+            const correct = parseInt(selected.value) === q.answer;
+            const time = ((Date.now() - startTime) / 1000).toFixed(2);
+            results.push({
+                no: current+1,
+                questionIndex: qIdx + 1, // JSONファイルの何番目の問題か（1から始まる）
+                mode: (current % 2 === 0 ? mode : (mode === 'light' ? 'dark' : 'light')),
+                code: q.code,
+                selectedIndex: parseInt(selected.value) + 1, // 選択した選択肢の番号（1から始まる）
+                selected: q.choices[selected.value],
+                correct: correct,
+                time: time
+            });
+            current++;
+            showQuestion();
+        };
+
+        function showResult() {
+            // CSV形式で出力: 問題番号,カラーモード,解答時間,選択した選択肢番号,正誤
+            let csv = 'QuestionNo,ColorMode,Time,AnswerChoice,Correct\n';
+            csv += results.map(r => `${r.questionIndex},${r.mode},${r.time},${r.selectedIndex},${r.correct ? '1' : '0'}`).join('\n');
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<h2>テスト結果</h2>
+                <pre id="csv-result">${csv}</pre>
+                <button id="copy-result">結果をコピー</button>
+                <div style="margin-top:1em;">この結果をコピーして下記のフォームに貼り付けてください。</div>
+                <div style="margin-top:1em;">
+                    <a href="https://forms.gle/pPDPWJ6VEmzjydJz8" target="_blank" style="display:inline-block; padding:10px 20px; background:#007acc; color:white; text-decoration:none; border-radius:5px; margin-top:10px;">フォームを開く</a>
+                </div>`;
+            resultDiv.style.display = '';
+            
+            document.getElementById('copy-result').onclick = function() {
+                navigator.clipboard.writeText(csv).then(() => {
+                    this.textContent = 'コピーしました!';
+                    setTimeout(() => { this.textContent = '結果をコピー'; }, 1500);
+                });
+            };
+        }
+
+        // 簡易C言語キーワード色付け
+        function highlightCCode() {
+            // highlight.jsでハイライトするので何もしない
+        }
+
+        function startTest() {
+            document.getElementById('intro-area').style.display = 'none';
+            document.getElementById('test-area').style.display = '';
+            testStarted = true;
+            current = 0;
+            results = [];
+            startTime = 0;
+            showQuestion();
+        }
+
+        // スタートボタン
+        document.getElementById('start-btn').onclick = function() {
+            startTest();
+        };
+
+        // JSONファイルから問題を読み込む
+        fetch('questions.json')
+            .then(res => res.json())
+            .then(data => {
+                questions = data;
+                // 問題数が少ない場合は繰り返し出題
+                let qLen = questions.length;
+                if (qLen === 0) {
+                    document.getElementById('test-area').innerHTML = '<div style="color:red;">問題データがありません。</div>';
+                    return;
+                }
+                let order = [];
+                for (let i = 0; i < totalQuestions; i++) {
+                    order.push(i % qLen);
+                }
+                questionOrder = shuffle(order);
+            })
+            .catch(err => {
+                document.getElementById('test-area').innerHTML = '<div style="color:red;">問題データの読み込みに失敗しました。</div>';
+            });
     </script>
 </body>
 </html>

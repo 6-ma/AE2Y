@@ -1,27 +1,122 @@
 [
     {
-        "code": "int x = 5;\nprintf(\"%d\", x++);",
-        "choices": ["4", "5", "6", "エラー"],
-        "answer": 1
-    },
-    {
-        "code": "for(int i=0; i<3; i++)\n    printf(\"%d\", i);",
-        "choices": ["012", "123", "234", "エラー"],
+        "code": "int result = 0;\nint i = 1;\nwhile (i <= 4) {\n    int temp = result;\n    result = temp + i;\n    i = i + 1;\n}\nint adjustment = 5;\nresult = result + adjustment;\nresult = result - adjustment;\nprintf(\"%d\", result);",
+        "choices": [
+            "10",
+            "9",
+            "4",
+            "11"
+        ],
         "answer": 0
     },
     {
-        "code": "printf(\"%d\", 2+3*4);",
-        "choices": ["20", "14", "24", "10"],
-        "answer": 1
+        "code": "int x = 5;\nint y = 0;\nint z = x * 2; \nx = z - 5; \ny = x++; \nint final_val = y; \nprintf(\"%d\", final_val);",
+        "choices": [
+            "5",
+            "6",
+            "4",
+            "0"
+        ],
+        "answer": 0
     },
     {
-        "code": "int a=2, b=3;\nprintf(\"%d\", a+b*2);",
-        "choices": ["8", "10", "7", "5"],
-        "answer": 2
+        "code": "int a = 10;\nint *p = &a;\n*p = *p + 5;\n*p = *p + 5;\nint final_a = a;\nprintf(\"%d\", final_a);",
+        "choices": [
+            "20",
+            "10",
+            "15",
+            "コンパイルエラー"
+        ],
+        "answer": 0
     },
     {
-        "code": "int x=1;\nprintf(\"%d\", ++x);",
-        "choices": ["1", "2", "3", "エラー"],
-        "answer": 1
+        "code": "int a = 5;\nint check_val = 10;\nif (a * 2 > check_val) {\n    a = a + 5;\n} else {\n    a = a - 5;\n}\nint b = a + 10;\nint c = b - 10;\nprintf(\"%d\", c);",
+        "choices": [
+            "0",
+            "5",
+            "10",
+            "15"
+        ],
+        "answer": 0
+    },
+    {
+        "code": "int counter = 3;\nint total = 0;\nwhile (counter > 0) {\n    int current_total = total;\n    total = current_total + 1;\n    total = total + 1;\n    counter = counter - 1;\n}\nprintf(\"%d\", total);",
+        "choices": [
+            "6",
+            "4",
+            "3",
+            "0"
+        ],
+        "answer": 0
+    },
+    {
+        "code": "int arr[] = {10, 20, 30, 40, 50};\nint i = 0;\ni = i + 1;\ni = i + 1;\narr[i] = arr[i] + 5;\narr[i] = arr[i] - 5;\nprintf(\"%d\", arr[i]);",
+        "choices": [
+            "30",
+            "20",
+            "40",
+            "2"
+        ],
+        "answer": 0
+    },
+    {
+        "code": "int num = 10;\nnum = num + 3;\nint divisor = 5;\nint result = num % divisor;\nint final_result = result + 10;\nfinal_result = final_result - 10;\nprintf(\"%d\", final_result);",
+        "choices": [
+            "3",
+            "2",
+            "1",
+            "5"
+        ],
+        "answer": 0
+    },
+    {
+        "code": "int calc(int x, int y){\n return x * y;\n}\nint a = 2;\nint b = 10;\na = a + 2;\nb = b / 2;\nint result = calc(a, b);\nprintf(\"%d\", result);",
+        "choices": [
+            "20",
+            "9",
+            "4",
+            "5"
+        ],
+        "answer": 0
+    },
+    {
+        "code": "int x = 5;\nint y = 3;\nx = x | y; \nx = x & 1; \nint result = x; \nprintf(\"%d\", result);",
+        "choices": [
+            "1",
+            "5",
+            "3",
+            "7"
+        ],
+        "answer": 0
+    },
+    {
+        "code": "int x = 10;\nint y = 10;\nint z = 100;\nint result = (x == y) ? z : 200;\nresult = result - 50;\nresult = result + 50;\nprintf(\"%d\", result);",
+        "choices": [
+            "100",
+            "200",
+            "50",
+            "150"
+        ],
+        "answer": 0
+    },
+    {
+        "code": "int x = 10;\nif (x > 5) {\n    int y = x + 5;\n    x = y - 5;\n}\nif (x == 10) {\n    int x = 5;\n    x = x + 10;\n}\nprintf(\"%d\", x);",
+        "choices": [
+            "10",
+            "5",
+            "15",
+            "コンパイルエラー"
+        ],
+        "answer": 0
+    },
+    {
+        "code": "char str[] = \"Hello World\";\nint index = 0;\nstr[index] = 'h';\nindex = index + 1;\nstr[index] = 'E';\nstr[index] = 'e';\nprintf(\"%c\", str[index]);",
+        "choices": [
+            "e",
+            "H",
+            "l",
+            "h"
+        ],
+        "answer": 0
     }
 ]
